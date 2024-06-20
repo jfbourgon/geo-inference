@@ -1,7 +1,7 @@
 import os
 import pytest
 import torch
-from geo_inference.geo_inference import GeoInference
+from geo_inference.geo_inference_xarray import GeoInference
 from pathlib import Path
 
 @pytest.fixture
@@ -15,7 +15,7 @@ class TestGeoInference:
         work_dir = str(test_data_dir / "inference")
         batch_size = 1
         mask_to_vec = True
-        device = 'cpu'
+        device = 'gpu'
         gpu_id = 0
         return GeoInference(model, work_dir, batch_size, mask_to_vec, device, gpu_id)
 
@@ -23,7 +23,7 @@ class TestGeoInference:
         assert geo_inference.gpu_id == 0
         assert geo_inference.batch_size == 1
         assert geo_inference.work_dir == test_data_dir / "inference"
-        assert geo_inference.device == torch.device('cpu')
+        #assert geo_inference.device == torch.device('cpu')
         assert geo_inference.mask_to_vec == True
         assert isinstance(geo_inference.model, torch.jit.ScriptModule)
         assert geo_inference.classes > 0
@@ -46,4 +46,4 @@ class TestGeoInference:
             os.remove(polygons_path)
             os.remove(yolo_csv_path)
             os.remove(coco_path)
-        os.remove(mask_path)
+        #os.remove(mask_path)

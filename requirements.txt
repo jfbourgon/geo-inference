@@ -1,8 +1,14 @@
-torchgeo>=0.3
-affine>=2.3.0
-colorlog==6.7.0
-scipy>=1.11.2
-pyyaml>=5.2
-requests>=2.22.0
-pynvml>=11.0
-geopandas>=0.10.2
+# conda install -c pytorch -c nvidia -c conda-forge pytorch torchvision torchaudio pytorch-cuda=12.1
+torchgeo
+affine
+colorlog
+dask
+scipy
+pyyaml
+requests
+pynvml
+geopandas
+rioxarray
+ipykernel
+pystac-client
+pytest
