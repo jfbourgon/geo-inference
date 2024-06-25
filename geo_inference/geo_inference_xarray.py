@@ -13,7 +13,7 @@ import rioxarray
 import xarray as xr
 
 from .config.logging_config import logger
-from .geo_blocks import InferenceMerge, InferenceSampler, RasterDataset
+#from .geo_blocks import InferenceMerge, InferenceSampler, RasterDataset
 from .utils.helpers import cmd_interface, get_device, get_directory, get_model
 from .utils.polygon import gdf_to_yolo, mask_to_poly_geojson, geojson2coco
 
@@ -78,15 +78,21 @@ class GeoInference:
             None
 
         """
-        mask_path = self.work_dir.joinpath(Path(tiff_image).stem + "_mask.tif")
+        self.mask_to_vec = False
+        tiff_image = "YT5-017149418010_01_P001-WV03"
+        ratio = 0.5
+        
         polygons_path = self.work_dir.joinpath(Path(tiff_image).stem + "_polygons.geojson")
         yolo_csv_path = self.work_dir.joinpath(Path(tiff_image).stem + "_yolo.csv")
         coco_json_path = self.work_dir.joinpath(Path(tiff_image).stem + "_coco.json")
         
-        image_prefix = Path(tiff_image).parent
-        r = rioxarray.open_rasterio(f"{image_prefix}/R.tif", chunks=patch_size)
-        g = rioxarray.open_rasterio(f"{image_prefix}/G.tif", chunks=patch_size)
-        b = rioxarray.open_rasterio(f"{image_prefix}/B.tif", chunks=patch_size)
+        #image_prefix = Path(tiff_image).parent
+        image_prefix = f"/gpfs/fs5/nrcan/nrcan_geobase/work/transfer/work/deep_learning/operationalization/data/{tiff_image}"
+        mask_path = self.work_dir.joinpath(Path(image_prefix).stem + "_mask.tif")
+
+        r = rioxarray.open_rasterio(f"{image_prefix}-R_clahe25.tif", chunks=patch_size)
+        g = rioxarray.open_rasterio(f"{image_prefix}-G_clahe25.tif", chunks=patch_size)
+        b = rioxarray.open_rasterio(f"{image_prefix}-B_clahe25.tif", chunks=patch_size)
         dataset = xr.concat([r,g,b], dim="band")
         #print(dataset)
         
@@ -100,7 +106,7 @@ class GeoInference:
             drop_axis=0,
             model=self.model,
             name="predict",
-            depth={1:patch_size, 2:patch_size}, 
+            depth={1:patch_size * ratio, 2:patch_size * ratio}, 
             trim=True,
         )
         #print(mask_array)
