@@ -4,7 +4,6 @@ import sys
 import tarfile
 import rasterio
 from pathlib import Path
-from collections import OrderedDict
 
 from unittest.mock import MagicMock, patch
 import pytest
