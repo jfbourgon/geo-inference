@@ -27,8 +27,6 @@ logger = logging.getLogger(__name__)
 
 USER_CACHE = Path.home().joinpath(".cache")
 script_dir = Path(__file__).resolve().parent.parent
-MODEL_CONFIG = script_dir / "config" / "models.yaml"
-
 
 def is_tiff_path(path: str):
     # Check if the given path ends with .tiff or .tif (case insensitive)
@@ -133,14 +131,10 @@ def get_directory(work_directory: str) -> Path:
         Path: working directory
     """
 
-    if work_directory:
-        work_directory = Path(work_directory)
-        if not work_directory.is_dir():
-            Path.mkdir(work_directory, parents=True)
-    else:
-        work_directory = USER_CACHE.joinpath("geo-inference")
-        if not work_directory.is_dir():
-            Path.mkdir(work_directory, parents=True)
+    work_directory = Path(work_directory)
+    if not work_directory.is_dir():
+        Path.mkdir(work_directory, parents=True)
+    print(f"working directory is {work_directory}")
 
     return work_directory
 
@@ -364,127 +358,6 @@ def read_csv(csv_file_name: str) -> Dict:
     except TypeError:
         logger.warning("Unable to sort csv rows")
     return list_values
-
-
-def cmd_interface(argv=None):
-    """
-    Parse command line arguments for extracting features from high-resolution imagery using pre-trained models.
-
-    Args:
-        argv (list): List of arguments to parse. If None, the arguments are taken from sys.argv.
-
-    Returns:
-        dict: A dictionary containing the parsed arguments.
-
-    Raises:
-        SystemExit: If the arguments are not valid.
-
-    Usage:
-        Use the -h option to get supported arguments.
-    """
-    parser = argparse.ArgumentParser(
-        usage="%(prog)s [-h HELP] use -h to get supported arguments.",
-        description="Extract features from high-resolution imagery using pre-trained models.",
-    )
-
-    parser.add_argument(
-        "-a",
-        "--args",
-        nargs=1,
-        help="Path to arguments stored in yaml, consult ./config/sample_config.yaml",
-    )
-
-    parser.add_argument(
-        "-bb", "--bbox", nargs=1, help="AOI bbox in this format'minx, miny, maxx, maxy'"
-    )
-
-    parser.add_argument(
-        "-br",
-        "--bands_requested",
-        nargs=1,
-        help="bands_requested in this format'R,G,B'",
-    )
-
-    parser.add_argument(
-        "-i", "--image", nargs=1, help="Path or URL to the input image"
-    )
-
-    parser.add_argument("-m", "--model", nargs=1, help="Path or URL to the model file")
-
-    parser.add_argument("-wd", "--work_dir", nargs=1, help="Working Directory")
-
-    parser.add_argument("-ps", "--patch_size", type=int, nargs=1, help="The Patch Size")
-
-    parser.add_argument("-w", "--workers", type=int, nargs=1, default=0, help="Numbers of workers")
-
-    parser.add_argument("-v", "--vec", nargs=1, help="Vector Conversion")
-
-    parser.add_argument("-mg", "--mgpu", nargs=1, help="Multi GPU")
-
-    parser.add_argument("-cls", "--classes", type=int, nargs=1, help="Inference Classes")
-
-    parser.add_argument("-y", "--yolo", nargs=1, help="Yolo Conversion")
-
-    parser.add_argument("-c", "--coco", nargs=1, help="Coco Conversion")
-
-    parser.add_argument("-d", "--device", nargs=1, help="CPU or GPU Device")
-
-    parser.add_argument("-id", "--gpu_id", nargs=1, help="GPU ID, Default = 0")
-
-    args = parser.parse_args()
-
-    if args.args:
-        config = read_yaml(args.args[0])
-        image = config["arguments"]["image"]
-        model = config["arguments"]["model"]
-        bbox = None if config["arguments"]["bbox"].lower() == "none" else config["arguments"]["bbox"]
-        work_dir = config["arguments"]["work_dir"]
-        bands_requested = config["arguments"]["bands_requested"]
-        workers = config["arguments"]["workers"]
-        vec = config["arguments"]["vec"]
-        yolo = config["arguments"]["yolo"]
-        coco = config["arguments"]["coco"]
-        device = config["arguments"]["device"]
-        gpu_id = config["arguments"]["gpu_id"]
-        multi_gpu = config["arguments"]["mgpu"]
-        classes = config["arguments"]["classes"]
-        patch_size = config["arguments"]["patch_size"]
-    elif args.image:
-        image =args.image[0]
-        model = args.model[0] if args.model else None
-        bbox = args.bbox[0] if args.bbox else None
-        work_dir = args.work_dir[0] if args.work_dir else None
-        bands_requested = args.bands_requested[0] if args.bands_requested else []
-        workers = args.workers[0] if args.workers else 0
-        vec = args.vec[0] if args.vec else False
-        yolo = args.yolo[0] if args.yolo else False
-        coco = args.coco[0] if args.coco else False
-        device = args.device[0] if args.device else "gpu"
-        gpu_id = args.gpu_id[0] if args.gpu_id else 0
-        multi_gpu = args.mgpu[0] if args.mgpu else False
-        classes = args.classes[0] if args.classes else 5
-        patch_size = args.patch_size[0] if args.patch_size else 1024 
-    else:
-        print("use the help [-h] option for correct usage")
-        raise SystemExit
-    arguments = {
-        "model": model,
-        "image": image,
-        "bands_requested": bands_requested,
-        "workers": workers,
-        "work_dir": work_dir,
-        "classes": classes,
-        "bbox": bbox,
-        "multi_gpu": multi_gpu,
-        "vec": vec,
-        "yolo": yolo,
-        "coco": coco,
-        "device": device,
-        "gpu_id": gpu_id,
-        "patch_size": patch_size,
-    }
-    return arguments
-
 
 if __name__ == "__main__":
     pass

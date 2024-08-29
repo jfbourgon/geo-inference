@@ -1,18 +1,22 @@
 import io
 import os
+import sys
 import tarfile
 import rasterio
 from pathlib import Path
+from collections import OrderedDict
+
 from unittest.mock import MagicMock, patch
 import pytest
+from hydra import compose, initialize_config_dir
+
 from geo_inference.utils.helpers import (calculate_gpu_stats,
                                          extract_tar_gz,
                                          get_directory, get_model,
                                          download_file_from_url,
                                          select_model_device,
                                          is_tiff_path, is_tiff_url, read_yaml,
-                                         validate_asset_type,
-                                         cmd_interface)
+                                         validate_asset_type)
 
 @pytest.fixture
 def test_data_dir():
@@ -38,26 +42,6 @@ def test_is_tiff_url():
     assert is_tiff_url('http://example.com/test.tiff') == True
     assert is_tiff_url('http://example.com/test.tif') == True
     assert is_tiff_url('http://example.com/test.jpg') == False
-
-def test_read_yaml(test_data_dir):
-    config_path = str(test_data_dir / 'sample.yaml')
-    result = read_yaml(config_path)
-    assert result["arguments"] == {"image": "./data/areial.tiff",
-                                   "bbox": "None",
-                                   "model": "rgb-4class-segformer",
-                                   "work_dir": "None",
-                                   "patch_size": 1024,
-                                   "workers": 0,
-                                   "vec": False,
-                                   "yolo": False,
-                                   "coco": False,
-                                   "device": "gpu",
-                                   "gpu_id": 0,
-                                   "bands_requested": '1,2,3',
-                                    "mgpu": False,
-                                    "classes": 5,
-                                    "n_workers": 20
-                                   }
 
 def test_validate_asset_type(test_data_dir):
     local_tiff_path = str(test_data_dir / '0.tif')
@@ -122,56 +106,43 @@ def test_get_model_file_not_exists(test_data_dir):
     with pytest.raises(ValueError):
         get_model('nonexistent_model.pth', test_data_dir)
 
-def test_cmd_interface_with_args(monkeypatch, test_data_dir):
-    config_path = str(test_data_dir / 'sample.yaml')
-    # Mock the command line arguments
-    monkeypatch.setattr('sys.argv', ['prog', '-a', config_path])
-
-    # Call the function
-    result = cmd_interface()
-
-    assert result == {"image": "./data/areial.tiff",
-                      "bbox": None,
-                      "bands_requested" : "1,2,3",
-                      "model": "rgb-4class-segformer",
-                      "work_dir": "None",
-                      "workers": 0,
-                      "vec": False,
-                      "yolo": False,
-                      "coco": False,
-                      "device": "gpu",
-                      "gpu_id": 0,
-                      "classes": 5,
-                      "multi_gpu": False,
-                      "patch_size": 1024
+def test_args_from_config(test_data_dir):
+    with initialize_config_dir(version_base=None, config_dir=test_data_dir.absolute().as_posix()):
+        cfg = compose(config_name="sample")
+        assert cfg == {"image": "./data/aerial.tiff",
+                       "model": "rgb-4class-segformer",
+                       "bbox": None,
+                       "workdir": ".",
+                       "vec": False,
+                       "yolo": False,
+                       "coco": False,
+                       "device": "gpu",
+                       "gpu_id": 0,
+                       "bands" : "1,2,3",
+                       "workers": 8,
+                       "mgpu": False,
+                       "classes": 5,
+                       "patchsize": 1024
                       }
 
-def test_cmd_interface_with_image(monkeypatch):
-    # Mock the command line arguments
-    monkeypatch.setattr('sys.argv', ['prog', '-i', 'image.tif'])
-    # Call the function
-    result = cmd_interface()
-    # Assert the result
-    assert result == {
-        "image": "image.tif",
-        "bbox": None,
-        "bands_requested" : [],
-        "workers": 0,
-        "model": None,
-        "work_dir": None,
-        "patch_size": 1024,
-        "vec": False,
-        "yolo": False,
-        "coco": False,
-        "device": "gpu",
-        "gpu_id": 0,
-        "classes": 5,
-        "multi_gpu": False,
-    }
-
-def test_cmd_interface_no_args(monkeypatch):
-    # Mock the command line arguments
-    monkeypatch.setattr('sys.argv', ['prog'])
-    # Call the function and assert that it raises SystemExit
-    with pytest.raises(SystemExit):
-        cmd_interface()
+def test_args_override_from_cli(test_data_dir):
+    sys.argv = ["prog", "image=test.tif", "patchsize=512"]
+    overrides = sys.argv[1:]
+    with initialize_config_dir(version_base=None, config_dir=test_data_dir.absolute().as_posix()):
+        cfg = compose(config_name="sample", overrides=overrides)
+        assert cfg == {"image": "test.tif",
+                       "model": "rgb-4class-segformer",
+                       "bbox": None,
+                       "workdir": ".",
+                       "vec": False,
+                       "yolo": False,
+                       "coco": False,
+                       "device": "gpu",
+                       "gpu_id": 0,
+                       "bands" : "1,2,3",
+                       "workers": 8,
+                       "mgpu": False,
+                       "classes": 5,
+                       "patchsize": 512
+                      }
+        

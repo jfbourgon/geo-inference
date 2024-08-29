@@ -15,6 +15,8 @@ from dask import config
 import dask.array as da
 from pathlib import Path
 from omegaconf import ListConfig 
+import hydra
+from omegaconf import DictConfig, OmegaConf
 from rasterio.windows import from_bounds
 from typing import Union, Sequence, List
 from dask.diagnostics import ProgressBar
@@ -339,27 +341,26 @@ class GeoInference:
             gc.collect()  # Call garbage collection
             await asyncio.sleep(interval_seconds)  # Wait for the specified interval
 
-def main() -> None:
-    arguments = cmd_interface()
+@hydra.main(version_base=None, config_path="config", config_name="config")
+def main(cfg : DictConfig) -> None:
     geo_inference = GeoInference(
-        model=arguments["model"],
-        work_dir=arguments["work_dir"],
-        mask_to_vec=arguments["vec"],
-        mask_to_coco=arguments["coco"],
-        mask_to_yolo=arguments["yolo"],
-        multi_gpu=arguments["multi_gpu"],
-        device=arguments["device"],
-        gpu_id=arguments["gpu_id"],
-        num_classes=arguments["classes"],
+        model=cfg["model"],
+        work_dir=cfg["workdir"],
+        mask_to_vec=cfg["vec"],
+        mask_to_coco=cfg["coco"],
+        mask_to_yolo=cfg["yolo"],
+        multi_gpu=cfg["mgpu"],
+        device=cfg["device"],
+        gpu_id=cfg["gpu_id"],
+        num_classes=cfg["classes"],
     )
     geo_inference(
-        inference_input=arguments["image"],
-        bands_requested=arguments["bands_requested"],
-        patch_size=arguments["patch_size"],
-        workers=arguments["workers"],
-        bbox=arguments["bbox"],
+        inference_input=cfg["image"],
+        bands_requested=cfg["bands"],
+        patch_size=cfg["patchsize"],
+        workers=cfg["workers"],
+        bbox=cfg["bbox"],
     )
-
 
 if __name__ == "__main__":
     main()
